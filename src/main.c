@@ -2,11 +2,11 @@
 #include <stdlib.h>
 
 #define STACK_MAX_SIZE 256
-#define IGCT 8
+#define INITIAL_GC_THRESHOLD 8
 
 typedef enum {
     INT,
-    TWIN
+    PAIR
 } ObjectType;
 
 typedef struct sObject {
@@ -16,14 +16,22 @@ typedef struct sObject {
     struct sObject* next;
 
     union {
+        /* INT */
         int value;
 
+        /* PAIR */
         struct {
             struct sObject* head;
             struct sObject* tail;
         };
     };
 } Object;
+
+
+/**
+ *  Virtual Machine
+ */
+
 
 typedef struct {
     Object* stack[STACK_MAX_SIZE];
@@ -35,7 +43,7 @@ typedef struct {
 
     int maxObjects;
 
-} VM;
+} VM; 
 
 
 void push(VM* vm, Object* value) {
@@ -53,7 +61,7 @@ VM* newVM() {
     vm->stackSize = 0;
     vm->firstObject = NULL;
     vm->numObjects = 0;
-    vm->maxObjects = IGCT;
+    vm->maxObjects = INITIAL_GC_THRESHOLD;
     return vm;
 }
 
@@ -63,7 +71,7 @@ void mark(Object* object) {
 
     object->marked = 1;
 
-    if (object->type == TWIN) {
+    if (object->type == PAIR) {
         mark(object->head);
         mark(object->tail);
     }
@@ -77,9 +85,10 @@ void markAll(VM* vm) {
 }
 
 
-void marksPeep(VM* vm)
+void markSweep(VM* vm)
 {
     Object** object = &vm->firstObject;
+
     while (*object) {
         if (!(*object)->marked) {
             Object* unreached = *object;
@@ -101,7 +110,7 @@ void gc(VM* vm) {
     int numObjects = vm->numObjects;
 
     markAll(vm);
-    marksPeep(vm);
+    markSweep(vm);
 
     vm->maxObjects = vm->numObjects * 2;
 
@@ -131,8 +140,8 @@ void pushInt(VM* vm, int intValue) {
     push(vm, object);
 }
 
-Object* pushTwin(VM* vm) {
-    Object* object = newObject(vm, TWIN);
+Object* pushPair(VM* vm) {
+    Object* object = newObject(vm, PAIR);
     object->tail = pop(vm);
     object->head = pop(vm);
     
@@ -147,7 +156,7 @@ void printObject(Object* object) {
         printf("%d", object->value);
         break;
 
-        case TWIN:
+        case PAIR:
         printf("(");
         printObject(object->head);
         printf(", ");
@@ -165,11 +174,9 @@ void freeVM(VM* vm) {
 }
 
 
-/***********************************************
- * 
- * TESTS Garbage Collector vm->maxObjects
- * 
- ***********************************************/
+/**
+ * TESTS Garbage Collector  
+ */
 
 
 void first_test() {
@@ -199,11 +206,11 @@ void third_test() {
 	VM* vm = newVM();
 	pushInt(vm, 1);
 	pushInt(vm, 2);
-	pushTwin(vm);
+	pushPair(vm);
 	pushInt(vm, 3);
 	pushInt(vm, 4);
-	pushTwin(vm);
-	pushTwin(vm);
+	pushPair(vm);
+	pushPair(vm);
 
 	gc(vm);
 	freeVM(vm);
@@ -214,10 +221,10 @@ void another_test() {
 	VM* vm = newVM();
 	pushInt(vm, 1);
 	pushInt(vm, 2);
-	Object* a = pushTwin(vm);
+	Object* a = pushPair(vm);
 	pushInt(vm, 3);
 	pushInt(vm, 4);
-	Object* b = pushTwin(vm);
+	Object* b = pushPair(vm);
 
 	a->tail = b;
 	b->tail = a;
