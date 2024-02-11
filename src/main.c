@@ -9,6 +9,7 @@ typedef enum {
     PAIR
 } ObjectType;
 
+
 typedef struct sObject {
     ObjectType type;
     unsigned char marked;
@@ -85,8 +86,7 @@ void markAll(VM* vm) {
 }
 
 
-void markSweep(VM* vm)
-{
+void markSweep(VM* vm) {
     Object** object = &vm->firstObject;
 
     while (*object) {
@@ -140,6 +140,7 @@ void pushInt(VM* vm, int intValue) {
     push(vm, object);
 }
 
+
 Object* pushPair(VM* vm) {
     Object* object = newObject(vm, PAIR);
     object->tail = pop(vm);
@@ -189,6 +190,7 @@ void first_test() {
 	freeVM(vm);
 }
 
+
 void second_test() {
 	printf("2: Unreached objects are collected.\n");
 	VM* vm = newVM();
@@ -200,6 +202,7 @@ void second_test() {
 	gc(vm);
 	freeVM(vm);
 }
+
 
 void third_test() {
 	printf("3: Reach the nested objects.\n");
@@ -215,6 +218,7 @@ void third_test() {
 	gc(vm);
 	freeVM(vm);
 }
+
 
 void another_test() {
 	printf("4: Cycles.\n");
@@ -232,6 +236,7 @@ void another_test() {
 	gc(vm);
 	freeVM(vm);
 }
+
 
 void performance() {
 	printf("Performance of GC.\n");
